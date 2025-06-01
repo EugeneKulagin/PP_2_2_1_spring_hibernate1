@@ -1,26 +1,22 @@
 package hiber.dao;
 
 import hiber.model.User;
-
-import javax.persistence.EntityGraph;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.TypedQuery;
-
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
 
+import javax.persistence.TypedQuery;
 import java.util.List;
 
 @Repository
 public class UserDaoImpl implements UserDao {
 
-    @Autowired
-    private SessionFactory sessionFactory;
+    private final SessionFactory sessionFactory;
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    public UserDaoImpl(SessionFactory sessionFactory) {
+        this.sessionFactory = sessionFactory;
+    }
 
     @Override
     public void add(User user) {
@@ -33,6 +29,7 @@ public class UserDaoImpl implements UserDao {
         return query.getResultList();
     }
 
+    @Override
     public void deleteAllUsers() {
         List<User> users = listUsers();
         for (User user : users) {
@@ -40,16 +37,15 @@ public class UserDaoImpl implements UserDao {
         }
     }
 
+    @Override
     public User findOwner(String carName, String carSeries) {
-        EntityGraph<User> entityGraph = entityManager.createEntityGraph(User.class);
-        entityGraph.addAttributeNodes("car");
+        try (Session session = sessionFactory.openSession()) {
+            String hql = "SELECT u FROM User u JOIN u.car c WHERE c.name = :carName AND c.series = :carSeries";
+            Query<User> query = session.createQuery(hql, User.class);
+            query.setParameter("carName", carName);
+            query.setParameter("carSeries", carSeries);
 
-        TypedQuery<User> query = entityManager.createQuery(
-                "SELECT u FROM User u JOIN u.car c WHERE c.name = :carName AND c.series = :carSeries", User.class);
-        query.setParameter("carName", carName);
-        query.setParameter("carSeries", carSeries);
-        query.setHint("javax.persistence.fetchgraph", entityGraph);
-
-        return query.getSingleResult();
+            return query.getSingleResult();
+        }
     }
 }
