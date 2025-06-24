@@ -12,7 +12,6 @@ public class CarServiceImpl implements CarService {
 
     private final CarDao carDao;
 
-    // Внедрение через конструктор
     public CarServiceImpl(CarDao carDao) {
         this.carDao = carDao;
     }
